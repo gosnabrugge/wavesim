@@ -102,7 +102,7 @@ classdef simulation
         function d = data_array(obj)
             %% Check whether gpu computation option is enabled
             if obj.gpu_enabled
-                d = gpuArray(obj.grid.Nred);
+                d = gpuArray(zeros(obj.grid.Nred));
             else
                 d = zeros(obj.grid.Nred);
             end
@@ -111,7 +111,7 @@ classdef simulation
         %% Continue to the next iteration. Returns false to indicate that the simulation has terminated
         function state = next(obj, state)
             %% store energy
-            state.diff_energy(state.it) = state.last_step_energy;
+            state.diff_energy(state.it) = gather(state.last_step_energy);
             
             %% check if simulation should terminate
             if (state.last_step_energy < state.threshold)
