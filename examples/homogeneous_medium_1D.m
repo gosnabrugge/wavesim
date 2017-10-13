@@ -9,8 +9,6 @@ addpath('..');
 PPW=4; %points per wavelength = lambda/h
 sopt.lambda = 1; %in mu %lambda_0 = 1; %wavelength in vacuum (in um)
 sopt.callback_interval = 25;
-sopt.gpu_enabled = false; % only cuda cards supported
-
 dt_relative_range = (1/2).^(0.5:0.5:3); % PSTD timestep
 
 mopt.lambda = sopt.lambda;
@@ -23,7 +21,7 @@ n1 = 1; %refractive index medium
 
 %% define a plane wave source and homogeneous medium
 source = sparse(N(1), N(2));
-source_pos = 1;%:PPW;%3*PPW;
+source_pos = 1;
 source(:,source_pos) = 1; % plane wave source
 sample = SampleMedium(n1*ones(N), mopt);
 

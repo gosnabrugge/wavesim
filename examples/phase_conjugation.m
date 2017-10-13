@@ -11,8 +11,8 @@ addpath('..');
 %% options for grid (gopt) and for simulation (sopt) 
 PPW=4; %points per wavelength = lambda/h
 sopt.lambda = 1; %in mu %lambda_0 = 1; %wavelength in vacuum (in um)
-sopt.energy_threshold = 1E-25;
-sopt.callback_interval = 1000;
+sopt.energy_threshold = 1E-16;
+sopt.callback_interval = 10;
 sopt.max_cycles = 6000;
 
 mopt.lambda = sopt.lambda;

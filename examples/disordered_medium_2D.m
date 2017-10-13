@@ -1,4 +1,4 @@
-%%% Simulates the wave propagation of a point source in a 3D random medium
+%%% Simulates the wave propagation of a point source in a 2D random medium
 %%% Gerwin Osnabrugge 2015
 
 clear all; close all;
@@ -7,7 +7,7 @@ addpath('..');
 %% options for grid (gopt) and for simulation (sopt) 
 PPW=4; %points per wavelength = lambda/h
 sopt.lambda = 1; %in mu %lambda_0 = 1; %wavelength in vacuum (in um)
-sopt.energy_threshold = 1E-25;%16;
+sopt.energy_threshold = 1E-16;
 sopt.callback_interval = 1000;
 sopt.max_iterations = 6000;
 
@@ -44,7 +44,7 @@ source(end/2,end/2) = 1; % point source
 
 %% wavesim simulation
 sim = wavesim(sample, sopt);
-E_recording = exec(sim, source);
+E = exec(sim, source);
 
 %% plot resulting field amplitude
 figure(1); clf;
