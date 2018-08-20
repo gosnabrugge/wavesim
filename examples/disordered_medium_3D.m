@@ -53,16 +53,18 @@ E = exec(sim, source);
 %% plot resulting field amplitude
 figure(1); clf;
 
+% set axes
 x = (-N(2)/2 + 1 : N(2)/2) /PPW;
 y = (-N(1)/2 + 1 : N(1)/2) /PPW;
 z = (-N(3)/2 + 1 : N(3)/2) /PPW;
 
+% plot 3D field amplitude
 slice(x,y,z, log(abs(E)), [0 8 16], 17, 17);
 set(findobj(gca,'Type','Surface'),'EdgeColor','none')
 axis square;
-xlabel('x (\lambda)','FontSize',16);
-ylabel('y (\lambda)','FontSize',16);
-zlabel('z (\lambda)','FontSize',16);
+xlabel('x / \lambda','FontSize',16);
+ylabel('y / \lambda','FontSize',16);
+zlabel('z / \lambda','FontSize',16);
 h = colorbar;
 set(get(h,'Title'),'String','log|E|','FontSize',18,'FontName','Times New Roman');
 set(gca,'FontSize',14);

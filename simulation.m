@@ -1,5 +1,5 @@
 classdef simulation
-    %Base class for a 2-D wave simulation
+    % Base class for a wave simulations
     % Ivo M. Vellekoop 2015
     
     properties
@@ -11,11 +11,13 @@ classdef simulation
         lambda = 1; %wavelength (default = 1 unit)      
         differential_mode = false; %when set to 'true', only the differential field for each iteration is calculated: the fields are not added to get a solution to the wave equation (used for debugging)
         gpu_enabled = false; % flag to determine if simulation are run on the GPU (default: false)
+        single_precision = false; % flag to determine if single precision is used (default: double)
         callback = @simulation.default_callback; %callback function that is called for showing the progress of the simulation. Default shows image of the absolute value of the field.
         callback_interval = 50; %the callback is called every 'callback_interval' steps. Default = 5
         energy_threshold = 1E-20; %the simulation stops when the difference for a step is less than 'energy_threshold'
         energy_calculation_interval = 10; %only calculate energy difference every N steps (to reduce overhead)
         max_cycles = 0; %number of wave periods to run the simulation. The number of actual iterations per cycle depends on the algorithm and its parameters
+        dimensions; % 2 or 3. Internally, all structures will be 3-D, but the result will be returned as 2- or 3-D array
         %internal:
         iterations_per_cycle;%must be set by derived class
     end
@@ -47,18 +49,40 @@ classdef simulation
             obj.y_range = obj.y_range - obj.y_range(1);
             obj.z_range = sample.grid.z_range(obj.roi{3});
             obj.z_range = obj.z_range - obj.z_range(1);
+            obj.dimensions = sample.dimensions;
             if (obj.max_cycles == 0) %default: 1.5 pass
                 LN = sqrt(length(obj.x_range).^2 + length(obj.y_range)^2 + length(obj.z_range)^2);
                 obj.max_cycles = LN * obj.grid.dx / obj.lambda * 2;
             end
         end
         
-        function [E, state] = exec(obj, source)
+        function [E, state] = exec(obj, source, source_pos)
+            %% Executes the simulation with the given source
+            % The size of 'source' should not exceed the size of the
+            % refractive index map, but it can be smaller. In that case
+            % the coordinate vector source_pos can be used to indicate
+            % the indices of the source within the refractive index map
+            % by default, 'source_pos' = [1,1,1]
             tic;
+            
+            if nargin < 3
+                source_pos = [1,1,1];
+            end
+            source_size = size(source);
+            if numel(source_size) < 3
+                source_size = [1, source_size];
+                %source_pos = [1, source_pos];
+            end
+            
+            state.source_pos = source_pos + [obj.roi{1}(1), obj.roi{2}(1), obj.roi{3}(1)] - [1,1,1];
+            if any((source_pos + source_size - 1) >  [obj.roi{1}(end), obj.roi{2}(end), obj.roi{3}(end)])
+                error('Source does not fit inside the simulation');
+            end
             
             %%% prepare state (contains all data that is unique to a single 
             % run of the simulation)
             %
+            state.source = data_array(obj, source); %note that source will be converted to 2d automatically if the last dimension is a singleton
             state.it = 1; %iteration
             state.max_iterations = ceil(obj.max_cycles * obj.iterations_per_cycle);
             disp(state.max_iterations);
@@ -67,19 +91,7 @@ classdef simulation
             state.last_step_energy = inf;
             state.calculate_energy = true;
             state.has_next = true;
-            
-            %% increase source array (which currently has the size of the roi)
-            % to the full grid size (including boundary conditions)
-            if (issparse(source) && ~obj.gpu_enabled)
-                state.source = sparse(obj.grid.N(1), obj.grid.N(2));
-            else
-                state.source = data_array(obj);
-            end;
-            if (obj.grid.dimension == 2)
-                state.source(obj.roi{1}, obj.roi{2}) = source;
-            else
-                state.source(obj.roi{1}, obj.roi{2}, obj.roi{3}) = source;
-            end    
+          
             %%% Execute simulation
             % the run_algorithm function should:
             % - update state.last_step_energy when required
@@ -96,22 +108,40 @@ classdef simulation
                 disp('Did not reach steady state');
             end
             E = state.E(obj.roi{1}, obj.roi{2}, obj.roi{3}); %% return only part inside roi. Array remains on the gpu if gpuEnabled = true
-        end;
-        
-        %% Creates an array of dimension obj.grid.N. If gpuEnabled is true, the array is created on the cpu
-        function d = data_array(obj)
-            %% Check whether gpu computation option is enabled
-            if obj.gpu_enabled
-                d = gpuArray(zeros(obj.grid.Nred));
-            else
-                d = zeros(obj.grid.Nred);
+            if obj.dimensions == 2
+                E = reshape(E, size(E,2), size(E,3)); %remove leading singleton dimension
             end
-        end;
+            E = gather(E); % converting gpuArray back to normal array
+        end
+        
+        %% Creates an array of dimension obj.grid.N. If gpuEnabled is true, the array is created on the gpu
+        function d = data_array(obj, data)
+            %% Check whether single precision and gpu computation options are enabled
+            if nargin < 2
+                if obj.single_precision
+                    d = zeros(obj.grid.N,'single');
+                else
+                    d = zeros(obj.grid.N,'double');
+                end
+            else
+                if obj.single_precision
+                    d = full(single(data));
+                else
+                    d = full(double(data));
+                end
+            end
+            if obj.gpu_enabled
+                d = gpuArray(d);
+            end
+            if ismatrix(d)
+                d = reshape(d, [1, size(d)]); %make 3-D. Note: the result will still be 2-D when the last dimension is a singleton!
+            end
+        end
         
         %% Continue to the next iteration. Returns false to indicate that the simulation has terminated
         function state = next(obj, state)
             %% store energy
-            state.diff_energy(state.it) = gather(state.last_step_energy);
+            state.diff_energy(state.it) = gather(state.last_step_energy);           
             
             %% check if simulation should terminate
             if (state.last_step_energy < state.threshold)
@@ -122,7 +152,7 @@ classdef simulation
                 state.converged = false;
             else
                 state.has_next = true;
-            end;
+            end
             
             %% do we need to calculate the last added energy? (only do this once in a while, because of the overhead)
             state.calculate_energy = mod(state.it, obj.energy_calculation_interval)==0;
@@ -143,6 +173,11 @@ classdef simulation
     methods(Static)
         function en = energy(E_x)
             en= sum(abs(E_x(:)).^2);
+        end
+        
+        function A = add_at(A, B, pos)
+            sz = size(B);
+            A(pos(1) + (0:sz(1)- 1), pos(2) + (0:sz(2)- 1), pos(3) + (0:sz(3) -1), :) = A(pos(1) + (0:sz(1)- 1), pos(2) + (0:sz(2)- 1), pos(3) + (0:sz(3) -1), :) + B;
         end
         
         function abs_image_callback(obj, state)
@@ -178,10 +213,9 @@ classdef simulation
                 sroi = obj.roi{3};
             end
             subplot(2,1,2); plot(1:length(sig), squeeze(sig), sroi(1)*ones(1,2), [min(sig),max(sig)], sroi(end)*ones(1,2), [min(sig),max(sig)]);
-            title('Cross-section')
-            xlabel('y (\lambda / 4)'); ylabel('log_{10}(|E|)');
+            title('midline cross-section')
+            xlabel('y (\lambda / 4)'); ylabel('real(E_x)');
             
-            %disp(['Added energy ', num2str(energy(end))]);
             drawnow;
         end
     end

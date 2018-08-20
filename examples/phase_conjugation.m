@@ -54,8 +54,9 @@ E_playback = exec(sim, source2);
 
 %% plot resulting field amplitude
 fig = figure(1); clf;
-set(fig,'Position',get(fig,'Position')+[0,0, 600, 0]);
+set(fig,'Position',get(fig,'Position')+[0,0, 400, 0]);
 
+% set axes
 x = (-N(2)/2 + 1 : N(2)/2) /PPW;
 y = (-N(1)/2 + 1 : N(1)/2) /PPW;
 
@@ -64,8 +65,8 @@ subplot(1,2,1);
 imagesc(x,y,log(abs(E_recording)));
 title('Recording Phase','FontSize',16);
 axis square;
-xlabel('x (\lambda)','FontSize',16);
-ylabel('y (\lambda)','FontSize',16);
+xlabel('x / \lambda','FontSize',16);
+ylabel('y / \lambda','FontSize',16);
 h = colorbar;
 set(get(h,'Title'),'String','log|E|','FontSize',18,'FontName','Times New Roman');
 set(gca,'FontSize',14);
@@ -75,8 +76,8 @@ subplot(1,2,2);
 imagesc(x,y,log(abs(E_playback)));
 axis square;
 title('Playback Phase','FontSize',16);
-xlabel('x (\lambda)','FontSize',16);
-ylabel('y (\lambda)','FontSize',16);
+xlabel('x / \lambda','FontSize',16);
+ylabel('y / \lambda','FontSize',16);
 h = colorbar;
 set(get(h,'Title'),'String','log|E|','FontSize',18,'FontName','Times New Roman');
 set(gca,'FontSize',14);

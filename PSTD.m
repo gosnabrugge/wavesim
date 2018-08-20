@@ -3,7 +3,7 @@ classdef PSTD < simulation
     % Saroch Leedumrongwatthanakun 2015
     
     properties
-        %optiond:
+        %options:
         dt_relative = 0.95; %Relative size of a time step compared to the convergence criterion for PSTD. Decrease for more accurate results (default=0.95)
         source_amplitude = @PSTD.default_source; %amplitude of the source as a function of time. Can be replaced by a different function by the user
         
@@ -30,7 +30,7 @@ classdef PSTD < simulation
             %% Calculate time step dt
             % The light speed is defined as 1 distance_unit / time_unit.
             %
-            obj.dtmax = 2/sqrt(sample.grid.dimension)/pi*sample.grid.dx*sqrt(sample.e_r_min); %Stability condition (ref needed)
+            obj.dtmax = 2/sqrt(obj.dimensions)/pi*sample.grid.dx*sqrt(sample.e_r_min); %Stability condition (ref needed)
             obj.dt = obj.dt_relative * obj.dtmax;
             obj.iterations_per_cycle = obj.lambda / obj.dt; %lambda[distance] / dt[time] / c[distance/time]
             
@@ -84,14 +84,15 @@ classdef PSTD < simulation
                 %
                 % isolate E_next:
                 % E_next = (nabla^2 E + source) * dt^2/e_r + 2*E - E_prev
-                E_next = obj.c2.*state.E + obj.c1.*E_prev + obj.c3 .* (ifftn(obj.koperator.*fftn(state.E)) + A*state.source);
+                Etmp = simulation.add_at(ifftn(obj.koperator.*fftn(state.E)), A * state.source, state.source_pos);
+                E_next = obj.c2.*state.E + obj.c1.*E_prev + obj.c3 .* Etmp;
                 
                 if state.calculate_energy
                     phase_shift = exp(1.0i*(angle(A)-angle(A_prev))); %expected phase shift for single step (only works for CW source!!)
                     state.last_step_energy = wavesim.energy(E_next(obj.roi{1}, obj.roi{2}, obj.roi{3}) - state.E(obj.roi{1}, obj.roi{2}, obj.roi{3})*phase_shift);
                     if (A<0.5) %workaround: don't terminate when source is still spinning ups
                         state.last_step_energy = max(state.last_step_energy, state.threshold*2);
-                    end;
+                    end
                 end
                 %% update fields
                 E_prev = state.E;

@@ -20,7 +20,7 @@ N = [64*PPW 64*PPW]; % size of medium (in pixels)
 
 %% Construct random medium
 % real refractive index
-n0 = 1.3;          % mean
+n0 = 1.3;        % mean
 n_var = 0.1;     % variance
 
 % imaginary refractive index
@@ -49,9 +49,22 @@ E = exec(sim, source);
 %% plot resulting field amplitude
 figure(1); clf;
 
+%set axes
 x = (-N(2)/2 + 1 : N(2)/2) /PPW;
 y = (-N(1)/2 + 1 : N(1)/2) /PPW;
 
+% plot refractive index distribution
+subplot(1,2,1);
+imagesc(x,y,real(n_sample));
+axis square;
+xlabel('x / \lambda','FontSize',16);
+ylabel('y / \lambda','FontSize',16);
+h = colorbar;
+set(get(h,'Title'),'String','n','FontSize',18,'FontName','Times New Roman');
+set(gca,'FontSize',14);
+
+% plot resulting field amplitude
+subplot(1,2,2);
 imagesc(x,y,log(abs(E)));
 axis square;
 xlabel('x (\lambda)','FontSize',16);
