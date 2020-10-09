@@ -1,6 +1,7 @@
-----------------------------------------------------------------------------------------------
-THIS REPOSITORY WILL NO LONGER BE UPDATED. PLEASE INSTEAD USE: github.com/ivovellekoop/wavesim
-----------------------------------------------------------------------------------------------
+--------------------------------------------------------
+THIS REPOSITORY WILL NO LONGER BE UPDATED. 
+PLEASE REFER TO: https://github.com/ivovellekoop/wavesim
+--------------------------------------------------------
 
 # Wavesim
 A fast and accurate method for solving the time-independent wave equation
